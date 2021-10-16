@@ -508,6 +508,48 @@ st_castToPolygon
 
 Casts ``Geometry`` *g* to a ``Polygon``.
 
+.. _st_castToMultiLineString:
+
+st_castToMultiLineString
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+::
+
+    MultiLineString st_castToMultiLineString(Geometry g)
+
+Casts ``Geometry`` *g* to a ``MultiLineString``.
+
+st_castToMultiPoint
+^^^^^^^^^^^^^^^^^^^
+
+::
+
+    MultiPoint st_castToMultiPoint(Geometry g)
+
+Casts ``Geometry`` *g* to a ``MultiPoint``.
+
+.. _st_castToMultiPolygon:
+
+st_castToMultiPolygon
+^^^^^^^^^^^^^^^^^^^^^
+
+::
+
+    MultiPolygon st_castToMultiPolygon(Geometry g)
+
+Casts ``Geometry`` *g* to a ``MultiPolygon``.
+
+.. _st_castToGeometryCollection:
+
+st_castToGeometryCollection
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+::
+
+    GeometryCollection st_castToGeometryCollection(Geometry g)
+
+Casts ``Geometry`` *g* to a ``GeometryCollection``.
+
 .. _st_castToGeometry:
 
 st_castToGeometry

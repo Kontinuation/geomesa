@@ -19,6 +19,10 @@ object GeometricCastFunctions {
   val ST_CastToPolygon:    Geometry => Polygon     = g => g.asInstanceOf[Polygon]
   val ST_CastToLineString: Geometry => LineString  = g => g.asInstanceOf[LineString]
   val ST_CastToGeometry:   Geometry => Geometry    = g => g
+  val ST_CastToMultiPoint: Geometry => MultiPoint  = g => g.asInstanceOf[MultiPoint]
+  val ST_CastToMultiLineString: Geometry => MultiLineString = g => g.asInstanceOf[MultiLineString]
+  val ST_CastToMultiPolygon: Geometry => MultiPolygon = g => g.asInstanceOf[MultiPolygon]
+  val ST_CastToGeometryCollection: Geometry => GeometryCollection = g => g.asInstanceOf[GeometryCollection]
   val ST_ByteArray: (String) => Array[Byte] =
     nullableUDF((string) => string.getBytes(StandardCharsets.UTF_8))
 
@@ -27,6 +31,10 @@ object GeometricCastFunctions {
     ST_CastToPolygon -> "st_castToPolygon",
     ST_CastToLineString -> "st_castToLineString",
     ST_CastToGeometry -> "st_castToGeometry",
+    ST_CastToMultiPoint -> "st_castToMultiPoint",
+    ST_CastToMultiLineString -> "st_castToMultiLineString",
+    ST_CastToMultiPolygon -> "st_castToMultiPolygon",
+    ST_CastToGeometryCollection -> "st_castToGeometryCollection",
     ST_ByteArray -> "st_byteArray"
   )
 
@@ -36,6 +44,10 @@ object GeometricCastFunctions {
     sqlContext.udf.register(castingNames(ST_CastToPolygon), ST_CastToPolygon)
     sqlContext.udf.register(castingNames(ST_CastToLineString), ST_CastToLineString)
     sqlContext.udf.register(castingNames(ST_CastToGeometry), ST_CastToGeometry)
+    sqlContext.udf.register(castingNames(ST_CastToMultiPoint), ST_CastToMultiPoint)
+    sqlContext.udf.register(castingNames(ST_CastToMultiLineString), ST_CastToMultiLineString)
+    sqlContext.udf.register(castingNames(ST_CastToMultiPolygon), ST_CastToMultiPolygon)
+    sqlContext.udf.register(castingNames(ST_CastToGeometryCollection), ST_CastToGeometryCollection)
     sqlContext.udf.register(castingNames(ST_ByteArray), ST_ByteArray)
   }
 }

@@ -8,16 +8,35 @@
 
 package org.locationtech.geomesa.spark.jts.udf
 
+import org.apache.spark.sql.{Column, Encoder, TypedColumn}
 import org.locationtech.jts.geom._
 import org.apache.spark.sql.functions.lit
 import org.junit.runner.RunWith
 import org.locationtech.geomesa.spark.jts._
-import org.locationtech.geomesa.spark.jts.util.util.{GeometryContainer, LineStringContainer, PointContainer, PolygonContainer}
+import org.locationtech.geomesa.spark.jts.util.util._
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
+import scala.reflect.ClassTag
+
 @RunWith(classOf[JUnitRunner])
 class GeometricCastFunctionsTest extends Specification with TestEnvironment {
+
+  import spark.implicits._
+
+  private def testCastFunctionOnNull[G : ClassTag, C <: AnyRef : ClassTag : Encoder](udfName: String, udf: Column => TypedColumn[Any, _]) = {
+    sc.sql(s"select $udfName(null)").collect.head(0) must beNull
+    dfBlank.select(udf(lit(null))).first must beNull
+    dfBlank.select(udf(lit(null)) as 'geom).as[C].head must haveClass[C]
+  }
+
+  private def testCastFunctionOnWKT[G : ClassTag, C <: AnyRef : ClassTag : Encoder](wkt: String, udfName: String, udf: Column => TypedColumn[Any, _ <: AnyRef])= {
+    val geom = s"st_geomFromWKT('$wkt')"
+    val df = sc.sql(s"select $udfName($geom) geom")
+    df.collect.head(0).asInstanceOf[AnyRef] must haveClass[G]
+    dfBlank.select(udf(st_geomFromWKT(wkt))).first must haveClass[G]
+    df.as[C].head must haveClass[C]
+  }
 
   "sql geometry accessors" should {
     sequential
@@ -30,107 +49,97 @@ class GeometricCastFunctionsTest extends Specification with TestEnvironment {
 
     "st_castToPoint" >> {
       "null" >> {
-        sc.sql("select st_castToPoint(null)").collect.head(0) must beNull
-        dfBlank.select(st_castToPoint(lit(null))).first must beNull
-
-        import spark.implicits._
-        dfBlank.select(st_castToPoint(lit(null)) as 'geom).as[PointContainer].head must haveClass[PointContainer]
+        testCastFunctionOnNull[Point, PointContainer]("st_castToPoint", st_castToPoint)
       }
-
       "point" >> {
-        val pointTxt = "POINT(1 1)"
-        val point = s"st_geomFromWKT('$pointTxt')"
-        val df = sc.sql(s"select st_castToPoint($point) geom")
-        df.collect.head(0).asInstanceOf[AnyRef] must haveClass[Point]
-        dfBlank.select(st_castToPoint(st_geomFromWKT(pointTxt))).first must haveClass[Point]
-
-        import spark.implicits._
-        df.as[PointContainer].head must haveClass[PointContainer]
+        testCastFunctionOnWKT[Point, PointContainer]("POINT(1 1)", "st_castToPoint", st_castToPoint)
       }
     }
 
     "st_castToPolygon" >> {
       "null" >> {
-        sc.sql("select st_castToPolygon(null)").collect.head(0) must beNull
-        dfBlank.select(st_castToPolygon(lit(null))).first must beNull
-
-        import spark.implicits._
-        dfBlank.select(st_castToPolygon(lit(null)) as 'geom).as[PolygonContainer].head must haveClass[PolygonContainer]
+        testCastFunctionOnNull[Polygon, PolygonContainer]("st_castToPolygon", st_castToPolygon)
       }
-
       "polygon" >> {
-        val polygonTxt = "POLYGON((1 1, 1 2, 2 2, 2 1, 1 1))"
-        val polygon = s"st_geomFromWKT('$polygonTxt')"
-        val df = sc.sql(s"select st_castToPolygon($polygon) geom")
-        df.collect.head(0).asInstanceOf[AnyRef] must haveClass[Polygon]
-        dfBlank.select(st_castToPolygon(st_geomFromWKT(polygonTxt))).first must haveClass[Polygon]
-
-        import spark.implicits._
-        df.as[PolygonContainer].head must haveClass[PolygonContainer]
+        testCastFunctionOnWKT[Polygon, PolygonContainer]("POLYGON((1 1, 1 2, 2 2, 2 1, 1 1))", "st_castToPolygon", st_castToPolygon)
       }
     }
 
     "st_castToLineString" >> {
       "null" >> {
-        sc.sql("select st_castToLineString(null)").collect.head(0) must beNull
-        dfBlank.select(st_castToLineString(lit(null))).first must beNull
-
-        import spark.implicits._
-        dfBlank.select(st_castToLineString(lit(null)) as 'geom).as[LineStringContainer].head must haveClass[LineStringContainer]
+        testCastFunctionOnNull[LineString, LineStringContainer]("st_castToLineString", st_castToLineString)
       }
-
       "linestring" >> {
-        val lineTxt = "LINESTRING(1 1, 2 2)"
-        val line = s"st_geomFromWKT('$lineTxt')"
-        val df = sc.sql(s"select st_castToLineString($line) geom")
-        df.collect.head(0).asInstanceOf[AnyRef] must haveClass[LineString]
-        dfBlank.select(st_castToLineString(st_geomFromWKT(lineTxt))).first must haveClass[LineString]
+        testCastFunctionOnWKT[LineString, LineStringContainer]("LINESTRING(1 1, 2 2)", "st_castToLineString", st_castToLineString)
+      }
+    }
 
-        import spark.implicits._
-        df.as[LineStringContainer].head must haveClass[LineStringContainer]
+    "st_castToMultiPoint" >> {
+      "null" >> {
+        testCastFunctionOnNull[MultiPoint, MultiPointContainer]("st_castToMultiPoint", st_castToMultiPoint)
+      }
+      "multipoint" >> {
+        testCastFunctionOnWKT[MultiPoint, MultiPointContainer]("MULTIPOINT (1 1,2 2)", "st_castToMultiPoint", st_castToMultiPoint)
+      }
+    }
+
+    "st_castToMultiPolygon" >> {
+      "null" >> {
+        testCastFunctionOnNull[MultiPolygon, MultiPolygonContainer]("st_castToMultiPolygon", st_castToMultiPolygon)
+      }
+      "multipolygon" >> {
+        testCastFunctionOnWKT[MultiPolygon, MultiPolygonContainer](
+          "MULTIPOLYGON(((1 1,1 2,2 2,2 1,1 1)),((1 1,2 1,2 2,1 1)))", "st_castToMultiPolygon", st_castToMultiPolygon)
+      }
+    }
+
+    "st_castToMultiLineString" >> {
+      "null" >> {
+        testCastFunctionOnNull[MultiLineString, MultiLineStringContainer]("st_castToMultiLineString", st_castToMultiLineString)
+      }
+      "multilinestring" >> {
+        testCastFunctionOnWKT[MultiLineString, MultiLineStringContainer](
+          "MULTILINESTRING((1 1,2 2),(3 3,4 4))", "st_castToMultiLineString", st_castToMultiLineString)
+      }
+    }
+
+    "st_castToGeometryCollection" >> {
+      "null" >> {
+        testCastFunctionOnNull[GeometryCollection, GeometryCollectionContainer]("st_castToGeometryCollection", st_castToGeometryCollection)
+      }
+      "geometrycollection" >> {
+        testCastFunctionOnWKT[GeometryCollection, GeometryCollectionContainer](
+          "GEOMETRYCOLLECTION(POINT(45.0 49.0),POINT(45.1 49.1))", "st_castToGeometryCollection", st_castToGeometryCollection)
       }
     }
 
     "st_castToGeometry" >> {
       "null" >> {
-        sc.sql("select st_castToGeometry(null)").collect.head(0) must beNull
-        dfBlank.select(st_castToGeometry(lit(null))).first must beNull
-
-        import spark.implicits._
-        dfBlank.select(st_castToGeometry(lit(null)) as 'geom).as[GeometryContainer].head must haveClass[GeometryContainer]
+        testCastFunctionOnNull[Geometry, GeometryContainer]("st_castToGeometry", st_castToGeometry)
       }
-
       "point" >> {
-        val pointTxt = "POINT(1 1)"
-        val point = s"st_geomFromWKT('$pointTxt')"
-        val df = sc.sql(s"select st_castToGeometry($point) geom")
-        df.collect.head(0).asInstanceOf[AnyRef] must haveClass[Point]
-        dfBlank.select(st_castToGeometry(st_geomFromWKT(pointTxt))).first must haveClass[Point]
-
-        import spark.implicits._
-        df.as[GeometryContainer].head must haveClass[GeometryContainer]
+        testCastFunctionOnWKT[Point, GeometryContainer]("POINT(1 1)", "st_castToGeometry", st_castToGeometry)
       }
-
       "polygon" >> {
-        val polygonTxt = "POLYGON((1 1, 1 2, 2 2, 2 1, 1 1))"
-        val polygon = s"st_geomFromWKT('$polygonTxt')"
-        val df = sc.sql(s"select st_castToGeometry($polygon) geom")
-        df.collect.head(0).asInstanceOf[AnyRef] must haveClass[Polygon]
-        dfBlank.select(st_castToGeometry(st_geomFromWKT(polygonTxt))).first must haveClass[Polygon]
-
-        import spark.implicits._
-        df.as[GeometryContainer].head must haveClass[GeometryContainer]
+        testCastFunctionOnWKT[Polygon, GeometryContainer]("POLYGON((1 1, 1 2, 2 2, 2 1, 1 1))", "st_castToGeometry", st_castToGeometry)
       }
-
       "linestring" >> {
-        val lineTxt = "LINESTRING(1 1, 2 2)"
-        val line = s"st_geomFromWKT('$lineTxt')"
-        val df = sc.sql(s"select st_castToGeometry($line) geom")
-        df.collect.head(0).asInstanceOf[AnyRef] must haveClass[LineString]
-        dfBlank.select(st_castToGeometry(st_geomFromWKT(lineTxt))).first must haveClass[LineString]
-
-        import spark.implicits._
-        df.as[GeometryContainer].head must haveClass[GeometryContainer]
+        testCastFunctionOnWKT[LineString, GeometryContainer]("LINESTRING(1 1, 2 2)", "st_castToGeometry", st_castToGeometry)
+      }
+      "multipoint" >> {
+        testCastFunctionOnWKT[MultiPoint, GeometryContainer]("MULTIPOINT(1 1,2 2)", "st_castToGeometry", st_castToGeometry)
+      }
+      "multipolygon" >> {
+        testCastFunctionOnWKT[MultiPolygon, GeometryContainer](
+          "MULTIPOLYGON(((1 1,1 2,2 2,2 1,1 1)),((1 1,2 1,2 2,1 1)))", "st_castToGeometry", st_castToGeometry)
+      }
+      "multilinestring" >> {
+        testCastFunctionOnWKT[MultiLineString, GeometryContainer](
+          "MULTILINESTRING((1 1,2 2),(3 3,4 4))", "st_castToGeometry", st_castToGeometry)
+      }
+      "geometrycollection" >> {
+        testCastFunctionOnWKT[GeometryCollection, GeometryContainer](
+          "GEOMETRYCOLLECTION(POINT(45.0 49.0),POINT(45.1 49.1))", "st_castToGeometry", st_castToGeometry)
       }
     }
 

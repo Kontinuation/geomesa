@@ -8,12 +8,15 @@
 
 package org.locationtech.geomesa.spark.jts.util
 
-import org.locationtech.jts.geom.{Geometry, LineString, Point, Polygon}
+import org.locationtech.jts.geom.{Geometry, GeometryCollection, LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon}
 
 package object util {
   case class PointContainer(geom: Point)
   case class PolygonContainer(geom: Polygon)
   case class LineStringContainer(geom: LineString)
+  case class MultiPointContainer(geom: MultiPoint)
+  case class MultiLineStringContainer(geom: MultiLineString)
+  case class MultiPolygonContainer(geom: MultiPolygon)
   case class GeometryContainer(geom: Geometry)
+  case class GeometryCollectionContainer(geom: GeometryCollection)
 }
-

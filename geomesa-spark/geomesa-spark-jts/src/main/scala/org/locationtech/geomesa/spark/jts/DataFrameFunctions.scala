@@ -175,6 +175,18 @@ object DataFrameFunctions extends SpatialEncoders {
     def st_castToGeometry(geom: Column): TypedColumn[Any, Geometry] =
       udfToColumn(ST_CastToGeometry, castingNames, geom)
 
+    def st_castToMultiPoint(geom: Column): TypedColumn[Any, MultiPoint] =
+      udfToColumn(ST_CastToMultiPoint, castingNames, geom)
+
+    def st_castToMultiLineString(geom: Column): TypedColumn[Any, MultiLineString] =
+      udfToColumn(ST_CastToMultiLineString, castingNames, geom)
+
+    def st_castToMultiPolygon(geom: Column): TypedColumn[Any, MultiPolygon] =
+      udfToColumn(ST_CastToMultiPolygon, castingNames, geom)
+
+    def st_castToGeometryCollection(geom: Column): TypedColumn[Any, GeometryCollection] =
+      udfToColumn(ST_CastToGeometryCollection, castingNames, geom)
+
     def st_byteArray(str: Column): TypedColumn[Any, Array[Byte]] =
       udfToColumn(ST_ByteArray, castingNames, str)
   }
